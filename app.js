@@ -1,15 +1,45 @@
 // --- Filler word configuration ---
-const FILLER_WORDS = [
+const DEFAULT_FILLERS = [
   'uh', 'um', 'ah', 'er', 'like', 'you know', 'basically',
   'actually', 'literally', 'right', 'so', 'well', 'I mean',
   'kind of', 'sort of', 'honestly', 'okay so',
 ];
 
-// Build a regex that matches filler words as whole words/phrases (case-insensitive)
-const FILLER_REGEX = new RegExp(
-  '\\b(' + FILLER_WORDS.map(w => w.replace(/\s+/g, '\\s+')).join('|') + ')\\b',
-  'gi'
-);
+// Load saved filler config from localStorage, or initialize from defaults
+// Format: { word: { enabled: bool, custom: bool } }
+function loadFillerConfig() {
+  const saved = localStorage.getItem('presenter-filler-config');
+  if (saved) return JSON.parse(saved);
+  const config = {};
+  for (const word of DEFAULT_FILLERS) {
+    config[word] = { enabled: true, custom: false };
+  }
+  return config;
+}
+
+let fillerConfig = loadFillerConfig();
+
+function saveFillerConfig() {
+  localStorage.setItem('presenter-filler-config', JSON.stringify(fillerConfig));
+}
+
+function getActiveFillers() {
+  return Object.entries(fillerConfig)
+    .filter(([_, v]) => v.enabled)
+    .map(([word]) => word);
+}
+
+// Build regex from currently active filler words
+function buildFillerRegex() {
+  const active = getActiveFillers();
+  if (active.length === 0) return null;
+  return new RegExp(
+    '\\b(' + active.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')).join('|') + ')\\b',
+    'gi'
+  );
+}
+
+let FILLER_REGEX = buildFillerRegex();
 
 // --- State ---
 let recognition = null;
@@ -114,7 +144,7 @@ function processFinalText(text) {
   totalWords += words.length;
 
   // Detect filler words
-  const matches = text.match(FILLER_REGEX);
+  const matches = FILLER_REGEX ? text.match(FILLER_REGEX) : null;
   if (matches) {
     for (const match of matches) {
       const key = match.toLowerCase();
@@ -189,7 +219,8 @@ function renderTranscript(interimText) {
 }
 
 function highlightFillers(text) {
-  return escapeHTML(text).replace(FILLER_REGEX, '<span class="filler">$1</span>');
+  const escaped = escapeHTML(text);
+  return FILLER_REGEX ? escaped.replace(FILLER_REGEX, '<span class="filler">$1</span>') : escaped;
 }
 
 function escapeHTML(str) {
@@ -321,10 +352,78 @@ function renderHistory() {
   }).join('');
 }
 
+// --- Settings panel ---
+const btnSettings = document.getElementById('btn-settings');
+const settingsPanel = document.getElementById('settings-panel');
+const fillerTogglesEl = document.getElementById('filler-toggles');
+const newFillerInput = document.getElementById('new-filler-input');
+const btnAddFiller = document.getElementById('btn-add-filler');
+
+function toggleSettings() {
+  const open = settingsPanel.style.display !== 'none';
+  settingsPanel.style.display = open ? 'none' : 'block';
+  btnSettings.textContent = open ? 'Settings' : 'Hide Settings';
+}
+
+function renderFillerToggles() {
+  fillerTogglesEl.innerHTML = Object.entries(fillerConfig)
+    .map(([word, { enabled, custom }]) => {
+      const cls = `filler-toggle ${enabled ? 'active' : 'inactive'} ${custom ? 'custom' : ''}`;
+      return `<div class="${cls}" data-word="${escapeHTML(word)}">
+        <span>${escapeHTML(word)}</span>
+        ${custom ? `<button class="remove-btn" data-remove="${escapeHTML(word)}">&times;</button>` : ''}
+      </div>`;
+    }).join('');
+}
+
+function handleToggleClick(e) {
+  const toggle = e.target.closest('.filler-toggle');
+  const removeBtn = e.target.closest('.remove-btn');
+
+  if (removeBtn) {
+    const word = removeBtn.dataset.remove;
+    delete fillerConfig[word];
+    saveFillerConfig();
+    FILLER_REGEX = buildFillerRegex();
+    renderFillerToggles();
+    return;
+  }
+
+  if (toggle) {
+    const word = toggle.dataset.word;
+    fillerConfig[word].enabled = !fillerConfig[word].enabled;
+    saveFillerConfig();
+    FILLER_REGEX = buildFillerRegex();
+    renderFillerToggles();
+  }
+}
+
+function addCustomFiller() {
+  const word = newFillerInput.value.trim().toLowerCase();
+  if (!word) return;
+  if (fillerConfig[word]) {
+    fillerConfig[word].enabled = true;
+  } else {
+    fillerConfig[word] = { enabled: true, custom: true };
+  }
+  newFillerInput.value = '';
+  saveFillerConfig();
+  FILLER_REGEX = buildFillerRegex();
+  renderFillerToggles();
+}
+
+btnSettings.addEventListener('click', toggleSettings);
+fillerTogglesEl.addEventListener('click', handleToggleClick);
+btnAddFiller.addEventListener('click', addCustomFiller);
+newFillerInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCustomFiller();
+});
+
 // --- Wire up buttons ---
 btnStart.addEventListener('click', startRecording);
 btnStop.addEventListener('click', stopRecording);
 btnReset.addEventListener('click', resetSession);
 
-// Load history on page load
+// Initial render
+renderFillerToggles();
 renderHistory();

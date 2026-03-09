@@ -297,6 +297,104 @@ header h1 {
   color: #64748b;
 }
 
+/* Settings */
+.settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.settings-panel {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 0.75rem;
+  border: 1px solid #334155;
+}
+
+.settings-panel h3 {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.settings-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.filler-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.filler-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #334155;
+  border-radius: 20px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.filler-toggle.active {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.filler-toggle.inactive {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.filler-toggle .remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 0 0 0.25rem;
+  line-height: 1;
+  display: none;
+}
+
+.filler-toggle.custom .remove-btn {
+  display: inline;
+}
+
+.add-filler {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-filler input {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.add-filler input:focus {
+  border-color: #3b82f6;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .dashboard {
