@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presenter Coach</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Presenter Coach</h1>
+      <p class="subtitle">Practice your presentations and track filler words &amp; pacing</p>
+    </header>
+
+    <div class="controls">
+      <button id="btn-start" class="btn btn-primary">Start Recording</button>
+      <button id="btn-stop" class="btn btn-danger" disabled>Stop</button>
+      <button id="btn-reset" class="btn btn-secondary" disabled>Reset</button>
+    </div>
+
+    <div class="status-bar">
+      <span id="status" class="status idle">Ready</span>
+      <span id="timer">00:00</span>
+    </div>
+
+    <div class="dashboard">
+      <div class="stat-card">
+        <div class="stat-value" id="wpm">0</div>
+        <div class="stat-label">Words / Min</div>
+        <div class="stat-detail" id="total-words">0 words total</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-value" id="filler-count">0</div>
+        <div class="stat-label">Filler Words</div>
+        <div class="stat-detail" id="filler-rate">0% of words</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="clarity-score">100</div>
+        <div class="stat-label">Clarity Score</div>
+        <div class="stat-detail">Based on filler ratio</div>
+      </div>
+    </div>
+
+    <div class="filler-breakdown" id="filler-breakdown">
+      <h3>Filler Word Breakdown</h3>
+      <div class="filler-chips" id="filler-chips"></div>
+    </div>
+
+    <div class="transcript-section">
+      <h3>Live Transcript</h3>
+      <div class="transcript" id="transcript">
+        <span class="placeholder">Your speech will appear here...</span>
+      </div>
+    </div>
+
+    <div class="history-section" id="history-section" style="display:none">
+      <h3>Session History</h3>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
