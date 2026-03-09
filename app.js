@@ -48,7 +48,9 @@ let startTime = null;
 let timerInterval = null;
 let totalWords = 0;
 let fillerCounts = {};  // { word: count }
-let transcriptParts = [];  // final transcript segments
+let transcriptParts = [];  // { text, timestamp, slide }
+let currentSlide = 1;
+let slideTimestamps = [];  // { slide, timestamp }
 let sessions = JSON.parse(localStorage.getItem('presenter-sessions') || '[]');
 
 // --- DOM refs ---
@@ -66,6 +68,11 @@ const fillerChipsEl = document.getElementById('filler-chips');
 const transcriptEl = document.getElementById('transcript');
 const historySection = document.getElementById('history-section');
 const historyList = document.getElementById('history-list');
+const btnNextSlide = document.getElementById('btn-next-slide');
+const slideIndicator = document.getElementById('slide-indicator');
+const replaySection = document.getElementById('replay-section');
+const replayContent = document.getElementById('replay-content');
+const btnCloseReplay = document.getElementById('btn-close-replay');
 
 // --- Check browser support ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -108,7 +115,11 @@ function handleResult(event) {
   }
 
   if (newFinalTranscript) {
-    transcriptParts.push(newFinalTranscript);
+    transcriptParts.push({
+      text: newFinalTranscript,
+      timestamp: getElapsedSeconds(),
+      slide: currentSlide,
+    });
     processFinalText(newFinalTranscript);
   }
 
@@ -205,16 +216,31 @@ function renderFillerChips() {
       ).join('');
 }
 
+function formatTime(seconds) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const s = String(Math.floor(seconds % 60)).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
 function renderTranscript(interimText) {
-  const finalHTML = transcriptParts
-    .map(part => highlightFillers(part))
-    .join(' ');
+  let html = '';
+  let lastSlide = 0;
+
+  for (const part of transcriptParts) {
+    if (part.slide !== lastSlide) {
+      const slideTs = slideTimestamps.find(s => s.slide === part.slide);
+      const time = slideTs ? formatTime(slideTs.timestamp) : formatTime(part.timestamp);
+      html += `<div class="slide-divider">Slide ${part.slide} <span class="slide-time">${time}</span></div>`;
+      lastSlide = part.slide;
+    }
+    html += `<span class="timestamp">${formatTime(part.timestamp)}</span>${highlightFillers(part.text)} `;
+  }
 
   const interimHTML = interimText
     ? `<span class="interim">${escapeHTML(interimText)}</span>`
     : '';
 
-  transcriptEl.innerHTML = finalHTML + ' ' + interimHTML;
+  transcriptEl.innerHTML = html + interimHTML;
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
 }
 
@@ -261,7 +287,13 @@ function startRecording() {
   btnStart.classList.add('recording');
   btnStart.disabled = true;
   btnStop.disabled = false;
+  btnNextSlide.disabled = false;
   btnReset.disabled = true;
+
+  currentSlide = 1;
+  slideTimestamps = [{ slide: 1, timestamp: 0 }];
+  slideIndicator.textContent = 'Slide 1';
+  slideIndicator.style.display = 'inline';
 
   statusEl.textContent = 'Listening';
   statusEl.className = 'status listening';
@@ -283,6 +315,7 @@ function stopRecording() {
   btnStart.classList.remove('recording');
   btnStart.disabled = false;
   btnStop.disabled = true;
+  btnNextSlide.disabled = true;
   btnReset.disabled = false;
 
   statusEl.textContent = 'Stopped';
@@ -291,13 +324,24 @@ function stopRecording() {
   saveSession();
 }
 
+function nextSlide() {
+  currentSlide++;
+  const ts = getElapsedSeconds();
+  slideTimestamps.push({ slide: currentSlide, timestamp: ts });
+  slideIndicator.textContent = `Slide ${currentSlide}`;
+  renderTranscript('');
+}
+
 function resetSession() {
   totalWords = 0;
   fillerCounts = {};
   transcriptParts = [];
+  currentSlide = 1;
+  slideTimestamps = [];
   startTime = null;
 
   timerEl.textContent = '00:00';
+  slideIndicator.style.display = 'none';
   transcriptEl.innerHTML = '<span class="placeholder">Your speech will appear here...</span>';
 
   btnReset.disabled = true;
@@ -322,6 +366,9 @@ function saveSession() {
     fillers: totalFillers,
     fillerBreakdown: { ...fillerCounts },
     clarity: Math.max(0, Math.round(100 - ((totalFillers / totalWords) * 100 * 5))),
+    transcript: transcriptParts.map(p => ({ ...p })),
+    slides: slideTimestamps.map(s => ({ ...s })),
+    totalSlides: currentSlide,
   };
 
   sessions.unshift(session);
@@ -337,20 +384,65 @@ function renderHistory() {
   }
 
   historySection.style.display = 'block';
-  historyList.innerHTML = sessions.map(s => {
+  historyList.innerHTML = sessions.map((s, i) => {
     const date = new Date(s.date).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
     const mins = Math.floor(s.duration / 60);
     const secs = s.duration % 60;
-    return `<div class="history-item">
+    const slideInfo = s.totalSlides ? ` &middot; ${s.totalSlides} slides` : '';
+    const hasTranscript = s.transcript && s.transcript.length > 0;
+    return `<div class="history-item" ${hasTranscript ? `data-session="${i}"` : ''}>
       <div>
-        <strong>${s.wpm} WPM</strong> &middot; ${s.fillers} fillers &middot; Clarity: ${s.clarity}
+        <strong>${s.wpm} WPM</strong> &middot; ${s.fillers} fillers &middot; Clarity: ${s.clarity}${slideInfo}
       </div>
-      <div class="meta">${date} &middot; ${mins}m ${secs}s</div>
+      <div class="meta">${date} &middot; ${mins}m ${secs}s${hasTranscript ? ' &middot; click to replay' : ''}</div>
     </div>`;
   }).join('');
 }
+
+// --- Replay ---
+function showReplay(sessionIndex) {
+  const s = sessions[sessionIndex];
+  if (!s || !s.transcript) return;
+
+  let html = `<div class="replay-stats">
+    <span>${s.wpm} WPM</span>
+    <span>${s.words} words</span>
+    <span>${s.fillers} fillers</span>
+    <span>Clarity: ${s.clarity}</span>
+    <span>${s.totalSlides || 1} slide${(s.totalSlides || 1) !== 1 ? 's' : ''}</span>
+    <span>${formatTime(s.duration)}</span>
+  </div>`;
+
+  html += '<div class="replay-content-inner">';
+  let lastSlide = 0;
+  for (const part of s.transcript) {
+    if (part.slide !== lastSlide) {
+      const slideTs = s.slides ? s.slides.find(sl => sl.slide === part.slide) : null;
+      const time = slideTs ? formatTime(slideTs.timestamp) : formatTime(part.timestamp);
+      html += `<div class="slide-divider">Slide ${part.slide} <span class="slide-time">${time}</span></div>`;
+      lastSlide = part.slide;
+    }
+    html += `<span class="timestamp">${formatTime(part.timestamp)}</span>${highlightFillers(part.text)} `;
+  }
+  html += '</div>';
+
+  replayContent.innerHTML = html;
+  replaySection.style.display = 'block';
+  replaySection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeReplay() {
+  replaySection.style.display = 'none';
+}
+
+historyList.addEventListener('click', e => {
+  const item = e.target.closest('.history-item[data-session]');
+  if (item) showReplay(parseInt(item.dataset.session));
+});
+
+btnCloseReplay.addEventListener('click', closeReplay);
 
 // --- Settings panel ---
 const btnSettings = document.getElementById('btn-settings');
@@ -422,6 +514,7 @@ newFillerInput.addEventListener('keydown', e => {
 // --- Wire up buttons ---
 btnStart.addEventListener('click', startRecording);
 btnStop.addEventListener('click', stopRecording);
+btnNextSlide.addEventListener('click', nextSlide);
 btnReset.addEventListener('click', resetSession);
 
 // Initial render

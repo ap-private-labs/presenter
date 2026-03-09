@@ -16,12 +16,16 @@
     <div class="controls">
       <button id="btn-start" class="btn btn-primary">Start Recording</button>
       <button id="btn-stop" class="btn btn-danger" disabled>Stop</button>
+      <button id="btn-next-slide" class="btn btn-slide" disabled>Next Slide</button>
       <button id="btn-reset" class="btn btn-secondary" disabled>Reset</button>
     </div>
 
     <div class="status-bar">
       <span id="status" class="status idle">Ready</span>
-      <span id="timer">00:00</span>
+      <div class="status-right">
+        <span id="slide-indicator" class="slide-indicator" style="display:none">Slide 1</span>
+        <span id="timer">00:00</span>
+      </div>
     </div>
 
     <div class="dashboard">
@@ -70,6 +74,14 @@
     <div class="history-section" id="history-section" style="display:none">
       <h3>Session History</h3>
       <div id="history-list"></div>
+    </div>
+
+    <div class="replay-section" id="replay-section" style="display:none">
+      <div class="replay-header">
+        <h3>Session Replay</h3>
+        <button id="btn-close-replay" class="btn btn-secondary btn-sm">Close</button>
+      </div>
+      <div id="replay-content"></div>
     </div>
   </div>
 

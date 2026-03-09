@@ -88,6 +88,15 @@ header h1 {
   background: #475569;
 }
 
+.btn-slide {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-slide:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
   50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
@@ -125,6 +134,18 @@ header h1 {
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slide-indicator {
+  font-size: 0.85rem;
+  color: #8b5cf6;
+  font-weight: 600;
 }
 
 #timer {
@@ -272,6 +293,36 @@ header h1 {
   font-style: italic;
 }
 
+.transcript .timestamp {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-right: 0.4rem;
+}
+
+.slide-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  color: #8b5cf6;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.slide-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #334155;
+}
+
+.slide-divider .slide-time {
+  color: #64748b;
+  font-weight: 400;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
 /* History */
 .history-section h3 {
   font-size: 0.9rem;
@@ -291,10 +342,61 @@ header h1 {
   align-items: center;
   border: 1px solid #334155;
   font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.history-item:hover {
+  border-color: #3b82f6;
 }
 
 .history-item .meta {
   color: #64748b;
+}
+
+/* Replay */
+.replay-section {
+  margin-bottom: 1.5rem;
+}
+
+.replay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.replay-header h3 {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.replay-content-inner {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid #334155;
+  max-height: 500px;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.replay-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  flex-wrap: wrap;
+}
+
+.replay-stats span {
+  background: #334155;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
 }
 
 /* Settings */
